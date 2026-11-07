@@ -1,0 +1,14 @@
+# Textures whose seams build.py keeps: their border content is a drawn part of the picture that healing would replace
+# with other content of the texture. One virtual path per line.
+mhk2/Tracks/mhk2_castle/Textures/schild2_uv.png
+mhk3/Tracks/mhk3_ufo/Textures/ufowand_oben_02.png
+mhke/Tracks/mhke_docklands/Textures/bigship.png
+mhkt/Shared/Textures/metal_0025.png
+mhkt/Tracks/mhkt_las_vegas/Textures/feld3000.png
+mhkt/Tracks/mhkt_macao/Textures/mauer_0026a.png
+mhkt/Tracks/mhkt_sydney/Textures/betonplatten_0007a.png
+tincan/Shared/Textures/mauer_11a.png
+tincan/Shared/Textures/mauer_12a.png
+tincan/Shared/Textures/teppichplatten_01.png
+tincan/Tracks/tincan_entrancehall/Textures/beton_03a.png
+tincan/Tracks/tincan_forecourt/Textures/beton_03b.png

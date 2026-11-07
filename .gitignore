@@ -1,0 +1,12 @@
+# Release packaging output (the workflow and local test runs write it)
+/out/
+*.zip
+
+# OS and tooling
+.DS_Store
+Thumbs.db
+desktop.ini
+__pycache__/
+
+# Build tools (Tools/): Python environment
+.venv/

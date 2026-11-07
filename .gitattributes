@@ -1,0 +1,20 @@
+[attr]lfs              filter=lfs diff=lfs merge=lfs -text
+
+# Normalise line endings of every text file git detects
+*                      text=auto
+*.json                 text eol=lf
+*.md                   text
+*.yml                  text eol=lf
+
+# Images and sounds of a pack go to Git LFS
+*.png                  lfs
+*.jpg                  lfs
+*.jpeg                 lfs
+*.ogg                  lfs
+*.wav                  lfs
+*.mp3                  lfs
+*.aif                  lfs
+*.aiff                 lfs
+
+# The pack icon stays a plain git file (small, and GitHub template repositories cannot hold LFS objects)
+/icon.png              -filter -diff -merge -text

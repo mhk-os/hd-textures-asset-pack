@@ -1,0 +1,91 @@
+# Release: zips the asset pack as <id>-<sha7>.zip (the folder <id>/ with pack.json, icon.png and Assets/) and publishes
+# it as the GitHub release build-<sha7>, titled "Build <n> | <sha7>" (n = commits on main), together with pack.json.
+# Both pack.json copies carry the commit (sha7), which the game compares to find updates. Runs on a push to main and by
+# hand. The template repository itself only packages the example pack, a pack made from it publishes.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.sha }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Pack and release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - id: meta
+        run: |
+          id=$(jq -r '.id // empty' pack.json)
+          if ! [[ "$id" =~ ^[a-z0-9][a-z0-9_.-]*$ ]]; then
+            echo "::error::pack.json needs an id of lowercase letters, digits, '_', '.' or '-', found '$id'"
+            exit 1
+          fi
+          sha7="${GITHUB_SHA::7}"
+          {
+            echo "id=$id"
+            echo "sha7=$sha7"
+            echo "tag=build-$sha7"
+            echo "title=Build $(git rev-list --count HEAD) | $sha7"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Package
+        env:
+          ID: ${{ steps.meta.outputs.id }}
+          SHA7: ${{ steps.meta.outputs.sha7 }}
+        run: |
+          out="$RUNNER_TEMP/pack"
+          rm -rf "$out"
+          mkdir -p "$out/$ID/Assets"
+          jq --arg commit "$SHA7" '. + {commit: $commit}' pack.json > "$out/pack.json"
+          cp "$out/pack.json" "$out/$ID/pack.json"
+          if [ -f icon.png ]; then cp icon.png "$out/$ID/icon.png"; fi
+          if [ -d Assets ]; then cp -R Assets/. "$out/$ID/Assets/"; fi
+          find "$out/$ID" -mindepth 1 -name '.*' -prune -exec rm -rf {} +
+          if grep -rlq 'version https://git-lfs.github.com/spec' "$out/$ID"; then
+            echo "::error::Git LFS pointers instead of files in the pack"
+            exit 1
+          fi
+          (cd "$out" && zip -r -X -q "$ID-$SHA7.zip" "$ID")
+          unzip -l "$out/$ID-$SHA7.zip"
+          cat "$out/pack.json"
+
+      - if: github.event.repository.is_template
+        run: echo "::notice::Template repository, the example pack is not published"
+
+      - name: Publish
+        if: ${{ !github.event.repository.is_template }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ steps.meta.outputs.id }}
+          SHA7: ${{ steps.meta.outputs.sha7 }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          TITLE: ${{ steps.meta.outputs.title }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::notice::$TAG exists, nothing to publish"
+            exit 0
+          fi
+          out="$RUNNER_TEMP/pack"
+          notes="$RUNNER_TEMP/notes.txt"
+          {
+            echo "$(jq -r '.title // .id' pack.json), commit $GITHUB_SHA"
+            echo
+            git log -1 --format=%B
+          } > "$notes"
+          gh release create "$TAG" "$out/$ID-$SHA7.zip" "$out/pack.json" --target "$GITHUB_SHA" --title "$TITLE" \
+            --notes-file "$notes" --latest
